@@ -76,24 +76,32 @@ class TaiYangProxies():
             type = ips_info[6+9*i]
             print(ip,port,type)
 
-async def run1(page):
-    kaixin.getIps(page)
-    #数据库存储操作
-    asyncio.sleep(3)
+async def run1():
+    for page in range(1, 11):
+        kaixin.getIps(page)
+        #数据库存储操作
+        await asyncio.sleep(3)
 
-async def run2(page):
-    kuai.getIps(page)
-    # 数据库存储操作
-    asyncio.sleep(4)
+async def run2():
+    for page in range(1, 200):
+        kuai.getIps(page)
+        # 数据库存储操作
+        await asyncio.sleep(4)
 
-async def run3(page):
-    taiyang.getIps(page)
-    # 数据库存储操作
-    asyncio.sleep(5)
+async def run3():
+    for page in range(1, 200):
+        taiyang.getIps(page)
+        # 数据库存储操作
+        await asyncio.sleep(5)
+def all_run():
+    loop = asyncio.get_event_loop()
+    res = loop.run_until_complete(asyncio.wait([run1(), run2(), run3()]))
+    loop.close()
 
 
 if __name__ == '__main__':
     kuai = KuaiProxies()
     kaixin = KaiXinProxies()
     taiyang = TaiYangProxies()
+    all_run()
 
