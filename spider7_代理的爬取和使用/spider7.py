@@ -27,7 +27,7 @@ class KuaiProxies:
     def __init__(self):
         self.base_url = "https://www.kuaidaili.com/free/inha/{page}/"
 
-    def getIps(self, url, page):
+    def getIps(self, page):
         url = self.base_url.format(page=page)
         html = my_requests.get_html(url, headers, "utf-8")
         if html is None:
@@ -38,7 +38,7 @@ class KuaiProxies:
             ip = ips_info("td[@data-title='IP']").text()
             port = ips_info("td[@data-title='PORT']").text()
             ip_type = ips_info("td[@data-title='类型']").text()
-            logging.info(f"{ip}, {port}, {ip_type}")
+            logging.info(f"快代理-{ip}-{port}-{ip_type}")
 
 
 class KaiXinProxies:
@@ -56,7 +56,7 @@ class KaiXinProxies:
             ip = ips_info("td:first-child").text()
             port = ips_info("td:nth-child(2)").text()
             type = ips_info("td:nth-child(4)").text()
-            logging.info(f"{ip},{port},{type}")
+            logging.info(f"开心代理{ip}-{port}-{type}")
 
 class TaiYangProxies():
     def __init__(self):
@@ -74,25 +74,25 @@ class TaiYangProxies():
             ip = ips_info[0+9*i]
             port = ips_info[1+9*i]
             type = ips_info[6+9*i]
-            print(ip,port,type)
+            logging.info(f"太阳代理-{ip}-{port}-{type}")
 
 async def run1():
     for page in range(1, 11):
         kaixin.getIps(page)
         #数据库存储操作
-        await asyncio.sleep(3)
+        await asyncio.sleep(12)
 
 async def run2():
     for page in range(1, 200):
         kuai.getIps(page)
         # 数据库存储操作
-        await asyncio.sleep(4)
+        await asyncio.sleep(10)
 
 async def run3():
-    for page in range(1, 200):
+    for page in range(1, 20):
         taiyang.getIps(page)
         # 数据库存储操作
-        await asyncio.sleep(5)
+        await asyncio.sleep(13)
 def all_run():
     loop = asyncio.get_event_loop()
     res = loop.run_until_complete(asyncio.wait([run1(), run2(), run3()]))

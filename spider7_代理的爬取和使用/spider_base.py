@@ -13,6 +13,7 @@ class MyRquests(object):
             if response.status_code !=200:
                 logging.info(f"网页请求失败 - {url}")
                 return None
+            logging.info(f"{url}")
             return response.text
         except Exception as e:
             logging.info(f"网页请求发生异常 - {url}")
