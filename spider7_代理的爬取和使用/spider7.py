@@ -7,12 +7,14 @@
 from spider_base import my_requests
 from pyquery import PyQuery
 import asyncio
-import logging
+from sqlalchemy import create_engine, desc
+from sqlalchemy.orm import sessionmaker
+import random
+import time
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
+from settings import *
+from m_log import *
+from models_control import MysqlServer
 
 #请求头
 headers = {
@@ -27,6 +29,7 @@ class KuaiProxies:
     def __init__(self):
         self.base_url = "https://www.kuaidaili.com/free/inha/{page}/"
 
+    @log_exception
     def getIps(self, page):
         url = self.base_url.format(page=page)
         html = my_requests.get_html(url, headers, "utf-8")
@@ -37,14 +40,15 @@ class KuaiProxies:
         for ips_info in ips_list.items():
             ip = ips_info("td[@data-title='IP']").text()
             port = ips_info("td[@data-title='PORT']").text()
-            ip_type = ips_info("td[@data-title='类型']").text()
-            logging.info(f"快代理-{ip}-{port}-{ip_type}")
-
+            type = ips_info("td[@data-title='类型']").text()
+            # logging.info(f"快代理-{ip}-{port}-{type}")
+            yield ip, port, type
 
 class KaiXinProxies:
     def __init__(self):
         self.base_url = "http://www.kxdaili.com/dailiip/1/{page}.html"
 
+    @log_exception
     def getIps(self, page):
         url = self.base_url.format(page=page)
         html = my_requests.get_html(url, headers, "UTF-8")
@@ -56,12 +60,13 @@ class KaiXinProxies:
             ip = ips_info("td:first-child").text()
             port = ips_info("td:nth-child(2)").text()
             type = ips_info("td:nth-child(4)").text()
-            logging.info(f"开心代理{ip}-{port}-{type}")
+            yield ip, port, type
 
 class TaiYangProxies():
     def __init__(self):
         self.base_url = "http://www.taiyanghttp.com/free/page{page}/"
 
+    @log_exception
     def getIps(self, page):
         url = self.base_url.format(page=page)
         html = my_requests.get_html(url, headers, "utf-8")
@@ -70,29 +75,38 @@ class TaiYangProxies():
         doc = PyQuery(html)
         ips_list = doc(".tr.ip_tr div") #document.querySelector("#ip_list > div:nth-child(1) > div:nth-child(1)")
         ips_info = [ips_info("div").text() for ips_info in ips_list.items()]
+
         for i in range(0, len(ips_info)//9):
             ip = ips_info[0+9*i]
             port = ips_info[1+9*i]
             type = ips_info[6+9*i]
-            logging.info(f"太阳代理-{ip}-{port}-{type}")
+            # logging.info(f"太阳代理-{ip}-{port}-{type}")
+            yield ip, port, type
 
 async def run1():
     for page in range(1, 11):
-        kaixin.getIps(page)
-        #数据库存储操作
-        await asyncio.sleep(12)
+        for ip, port, type in kaixin.getIps(page):
+            logging.info(f"开心代理{ip}-{port}-{type} - 检测")
+            sql_m.insert_info(ip, port, type)
+            await asyncio.sleep(4)
+        await asyncio.sleep(17)
 
 async def run2():
     for page in range(1, 200):
-        kuai.getIps(page)
-        # 数据库存储操作
-        await asyncio.sleep(10)
+        for ip, port, type in kuai.getIps(page):
+            logging.info(f"快代理-{ip}-{port}-{type} - 检测")
+            sql_m.insert_info(ip, port, type)
+            await asyncio.sleep(2)
+        await asyncio.sleep(15)
 
 async def run3():
     for page in range(1, 20):
-        taiyang.getIps(page)
-        # 数据库存储操作
-        await asyncio.sleep(13)
+        for ip, port, type in taiyang.getIps(page):
+            logging.info(f"太阳代理{ip}-{port}-{type} - 检测")
+            sql_m.insert_info(ip, port, type)
+
+            await asyncio.sleep(3)
+        await asyncio.sleep(26)
 def all_run():
     loop = asyncio.get_event_loop()
     res = loop.run_until_complete(asyncio.wait([run1(), run2(), run3()]))
@@ -103,5 +117,16 @@ if __name__ == '__main__':
     kuai = KuaiProxies()
     kaixin = KaiXinProxies()
     taiyang = TaiYangProxies()
-    all_run()
+    engine = create_engine("mysql+pymysql://root:{}@{}:{}/{}?charset=UTF8MB4". \
+                           format(mysql_pwd, mysql_host, mysql_port,
+                                  mysql_db), pool_recycle=int(mysql_port),
+                           pool_size=0, max_overflow=-1)
+    DBSession = sessionmaker(bind=engine)  # 创建session类型
+    sql_m = MysqlServer(DBSession)
+    while True:
+        all_run()
+        print("-"*200)
+        print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
+        time.sleep(60*60*24)
+
 
