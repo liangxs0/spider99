@@ -1,15 +1,12 @@
 from django.shortcuts import render
-from django.views.decorators.csrf import csrf_exempt
+from rest_framework.response import Response
+from rest_framework import generics
 
-import json
-# Create your views here.
-@csrf_exempt
-def my_api(requests):
-    dic = {}
-    if requests.method == "GET":
-        dic['message'] = 0
+from app.models import Proxies
+from app.serializers import CommSerializers
 
-    else:
-        dic['message'] = '方法错误'
 
+class IPList(generics.ListAPIView):
+    queryset = Proxies.objects.all()
+    serializer_class = CommSerializers
 
